@@ -1,0 +1,46 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the README at:
+// https://github.com/microsoft/vscode-dev-containers/tree/v0.234.0/containers/typescript-node
+{
+  "name": "Node.js & TypeScript & PostgreSQL",
+  // "runArgs": ["--init", "--env-file", ".devcontainer/devcontainer.env"],
+  // "build": {
+  //   "dockerfile": "Dockerfile",
+  //   // Update 'VARIANT' to pick a Node version: 18, 16, 14.
+  //   // Append -bullseye or -buster to pin to an OS version.
+  //   // Use -bullseye variants on local on arm64/Apple Silicon.
+  //   "args": {
+  //     "VARIANT": "18-bullseye"
+  //   }
+  // },
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+  // Set *default* container specific settings.json values on container create.
+  // "settings": {},
+
+  // Add the IDs of extensions you want installed when the container is created.
+  "extensions": [
+    "dbaeumer.vscode-eslint",
+    "mhutchie.git-graph",
+    "esbenp.prettier-vscode"
+  ],
+
+  // Use 'forwardPorts' to make a list of ports inside the container available locally.
+  // "forwardPorts": [],
+
+  // Use 'postCreateCommand' to run commands after the container is created.
+  "postCreateCommand": "chown -R node . && npm install",
+
+  // Comment out to connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
+  "remoteUser": "node",
+  "mounts": [
+    "source=try-node-node_modules,target=${containerWorkspaceFolder}/node_modules,type=volume"
+  ],
+  "features": {
+    "git": "latest",
+    "git-lfs": "latest",
+    "github-cli": "latest",
+    "powershell": "latest",
+    "azure-cli": "latest"
+  }
+}
