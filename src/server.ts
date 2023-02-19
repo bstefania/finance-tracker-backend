@@ -1,10 +1,10 @@
 import express, { Application } from "express"
 import morgan from "morgan"
 import cors from "cors"
-import { checkUser } from "./middlewares/Authentication"
-import { apiErrorHandler } from "./middlewares/ErrorHandler"
+// import { checkUser } from "./middlewares/Authentication"
+// import { apiErrorHandler } from "./middlewares/ErrorHandler"
 import { getEnvironmentVariable } from "./utils/EnvironmentVariable"
-import homeRouter from "./routes/Home"
+// import homeRouter from "./routes/Home"
 import { AppDataSource } from "./models/DataSource"
 
 export const createServer = () => {
@@ -14,12 +14,17 @@ export const createServer = () => {
   app.use(morgan("tiny"))
   app.use(express.static("public"))
   app.use(cors({ origin: getEnvironmentVariable("WEB_FRONTEND_URL") }))
+  
+  app.get("/", (req, res) => {
+    console.log("hi")
+    res.send("hyhftgfd")
+  })
 
-  app.use(homeRouter)
+  // app.use(homeRouter)
 
-  app.use(checkUser)
+  // app.use(checkUser)
 
-  app.use(apiErrorHandler)
+  // app.use(apiErrorHandler)
 
   return app
 }

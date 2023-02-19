@@ -7,6 +7,6 @@ const port = process.env.PORT || 8080
 
 initializeDataSource().then(() => {
   app.listen(port, () => {
-    console.log(`Example app listening on port ${port}`)
+    console.log(`App listening on http://127.0.0.1:${port}`)
   })
 })
