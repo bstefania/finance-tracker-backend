@@ -1,26 +1,34 @@
 
-import { PrimaryGeneratedColumn, Column } from "typeorm";
+import { PrimaryGeneratedColumn, Column, ManyToOne, JoinTable, ManyToMany, Entity, Check } from "typeorm";
 import { Frequency, TransactionType } from "../../types/General";
+import { SubCategory } from './SubCategory';
+import { User } from './User';
 
+@Entity()
+@Check(`"amount" > 0`)
 export class Plan {
   @PrimaryGeneratedColumn()
   id!: string
 
-  @ManyToOne(() => User, (user: User) => user.plans)
-  user!: User
-
-  @Column()
-  type!: TransactionType
-
+  @ManyToOne(() => SubCategory, (subCategory: SubCategory) => subCategory.plans)
+  subCategory!: SubCategory
+  
   @Column()
   frequency!: Frequency
-
+  
   @Column()
   startDate!: Date
-
+  
   @Column()
-  endDate: Date
-
+  endDate?: Date
+  
   @Column()
-  amount: number
+  amount!: number
+  
+  @ManyToOne(() => User, (user: User) => user.plans)
+  owner!: User
+
+  @ManyToMany(() => User)
+  @JoinTable()
+  sharedWith?: User[]
 }

@@ -1,11 +1,11 @@
 export enum TransactionType {
-  Income,
-  Expense,
-  Saving,
-  Investment
+  Income = "Income",
+  Expense = "Expense",
+  Saving = "Saving",
+  Investment = "Investment"
 }
 
 export enum Frequency { 
-  Monthly,
-  Yearly
+  Monthly = "Monthly",
+  Yearly = "Yearly"
 }

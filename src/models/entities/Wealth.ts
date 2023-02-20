@@ -1,6 +1,11 @@
 
-import { PrimaryGeneratedColumn, Column, OneToOne } from "typeorm";
+import { PrimaryGeneratedColumn, Column, OneToOne, Entity, Check } from "typeorm";
+import { User } from './User';
 
+@Entity()
+@Check(`"wallet" >= 0`)
+@Check(`"saving" >= 0`)
+@Check(`"investment" >= 0`)
 export class Wealth {
   @PrimaryGeneratedColumn()
   id!: string
@@ -9,11 +14,11 @@ export class Wealth {
   user!: User
 
   @Column()
-  wallet: number
+  wallet!: number
 
   @Column()
-  saving: number
+  saving!: number
 
   @Column()
-  investment: number
+  investment!: number
 }
