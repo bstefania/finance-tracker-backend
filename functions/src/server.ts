@@ -1,11 +1,12 @@
 import express, {Application} from "express"
 import morgan from "morgan"
 import cors from "cors"
-// import { checkUser } from "./middlewares/Authentication"
-// import { apiErrorHandler } from "./middlewares/ErrorHandler"
+import { connectToFirebase } from "./firebase"
+import { checkUser } from "./middlewares/Authentication"
+import { apiErrorHandler } from "./middlewares/ErrorHandler"
 import {getEnvironmentVariable} from "./utils/EnvironmentVariable"
-// import homeRouter from "./routes/Home"
-import {AppDataSource} from "./models/DataSource"
+import transactionsRouter from "./routes/Transaction"
+import categoryRouter from "./routes/Category"
 
 export const createServer = () => {
   const app: Application = express()
@@ -14,22 +15,22 @@ export const createServer = () => {
   app.use(morgan("tiny"))
   app.use(express.static("public"))
   app.use(cors({origin: getEnvironmentVariable("WEB_FRONTEND_URL")}))
+  connectToFirebase()
 
   app.get("/", (req, res) => {
-    console.log("hi")
-    res.send("hyhftgfd")
+    res.send("hi")
   })
 
-  // app.use(homeRouter)
+  app.use(checkUser)
+  app.use(transactionsRouter)
+  app.use(categoryRouter)
 
-  // app.use(checkUser)
-
-  // app.use(apiErrorHandler)
+  app.use(apiErrorHandler)
 
   return app
 }
 
 export const initializeDataSource = async () => {
-  await AppDataSource.initialize()
+  // await AppDataSource.initialize()
   console.log("Connected to the database.")
 }

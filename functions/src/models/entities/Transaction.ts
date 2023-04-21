@@ -1,4 +1,3 @@
-
 import {PrimaryGeneratedColumn, Column, ManyToOne, JoinTable, ManyToMany, Entity, Check} from "typeorm"
 import {SubCategory} from "./SubCategory"
 import {User} from "./User"
