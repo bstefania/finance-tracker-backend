@@ -1,99 +1,70 @@
+import { DocumentReference } from 'firebase-admin/firestore';
 import { db } from "../../firebase"
 import { ApiError } from "../../middlewares/ErrorHandler";
-import { CategoryGroup, CategoryGroupInput, HttpResponse, User } from '../../types/General'
+import { CategoryGroupInput, HttpResponse, User } from '../../types/General'
+import { idsToRef, refsToData } from '../../utils/FirestoreData';
 
 const collectionName = 'categoryGroups'
 const usersCollectionName = 'users'
 
-const refsToData = (refs: FirebaseFirestore.DocumentReference[]) => {
-  return Promise.all(refs.map(async (ref: FirebaseFirestore.DocumentReference) => ({
-    id: ref.id,
-    ...(await ref.get()).data(),
-  })))
-}
-
-const idsToRef = (ids: string[], collectionName: string) => {
-  return ids.map((id) =>
-    db.collection(collectionName).doc(id)
-  )
-}
 
 export const getCategoryGroups = async (userId: string) => {
-  const userDoc = db.collection(usersCollectionName).doc(userId)
+  const userRef = idsToRef(userId, usersCollectionName)
   const querySnapshot = await db
     .collection(collectionName)
-    .where('owner', '==', userDoc)
+    .where('owner', '==', userRef)
     .get();
 
-  const userData = (await userDoc.get()).data()
+  const owner = await refsToData(userRef) as User
 
-  const categoryGroups: CategoryGroup[] = [];
-  querySnapshot.forEach(async (ref) => {
+  return Promise.all(querySnapshot.docs.map(async (ref) => {
     const data = ref.data();
-    categoryGroups.push({
+    return {
       id: ref.id,
       name: data.name,
-      owner: userData as User,
+      owner,
       sharedWith: await refsToData(data.sharedWith) as User[],
-    });
-  });
-
-  return categoryGroups;
+    };
+  }))
 }
 
 export const getCategoryGroup = async (
   categoryGroupId: string,
   userId: string
 ) => {
-  const categoryGroup = (await db.collection(collectionName).doc(categoryGroupId).get()).data()
+  const categoryGroupRef = idsToRef(categoryGroupId, collectionName) as DocumentReference<FirebaseFirestore.DocumentData>
+  const categoryGroup = await refsToData(categoryGroupRef)
   if (!categoryGroup || categoryGroup.owner.id !== userId) {
     throw new ApiError(HttpResponse.NOT_FOUND, "Category group not found.");
   }
-  return {
-    id: categoryGroup.id,
-    name: categoryGroup.name,
-    owner: (await categoryGroup.owner.get()).data() as User,
-    sharedWith: await refsToData(categoryGroup.sharedWith) as User[]
-  }
+  return categoryGroup
 }
 
 export const createCategoryGroup = async (categoryGroup: CategoryGroupInput, userId: string) => {
   const categoryGroupRef = await db.collection(collectionName).add({
     name: categoryGroup.name,
-    owner: db.collection(usersCollectionName).doc(userId),
+    owner: idsToRef(userId, usersCollectionName),
     sharedWith: idsToRef(categoryGroup.sharedWith, usersCollectionName),
   })
-
-  const createdCategoryGroup = (await categoryGroupRef.get()).data();
-
-  if (!createdCategoryGroup) {
+  if (!categoryGroupRef) {
     throw new ApiError(HttpResponse.INTERNAL_SERVER_ERROR, "Category group could not be created.")
   }
 
-  const ownerRef = createdCategoryGroup.owner;
-  const sharedWithRefs = createdCategoryGroup.sharedWith;
-  const owner = {
-    id: ownerRef.id,
-    ...(await ownerRef.get()).data()
-  }
-  const sharedWith = await refsToData(sharedWithRefs)
-
-  return {
-    id: createdCategoryGroup.id,
-    name: createdCategoryGroup.name,
-    owner,
-    sharedWith
-  } as CategoryGroup;
+  return refsToData(categoryGroupRef);
 }
 
 export const updateCategoryGroup = async (
-  categoryId: string,
+  categoryGroupId: string,
   categoryGroupUpdates: Partial<CategoryGroupInput>,
   userId: string
 ) => {
-  const categoryGroupRef = db.collection(collectionName).doc(categoryId);
-  const categoryGroup = (await categoryGroupRef.get()).data();
-  if (!categoryGroup || categoryGroup.owner.id !== userId) {
+  const categoryGroupRef = idsToRef(categoryGroupId, collectionName) as DocumentReference
+  const categoryGroup = await refsToData(categoryGroupRef);
+
+  if (!categoryGroup) {
+    throw new ApiError(HttpResponse.NOT_FOUND, "Category group doesn't exist.", categoryGroupId)
+  }
+  if (categoryGroup.owner.id !== userId) {
     throw new ApiError(HttpResponse.FORBIDDEN, "You don't have permission to update this category group.");
   }
 
@@ -108,29 +79,22 @@ export const updateCategoryGroup = async (
   }
 
   await categoryGroupRef.update(newData);
-  const updatedCategoryGroup = (await categoryGroupRef.get()).data();
+  const updatedCategoryGroup = await refsToData(categoryGroupRef);
 
   if (!updatedCategoryGroup) {
     throw new ApiError(HttpResponse.INTERNAL_SERVER_ERROR, "Category group could not be updated.")
   }
 
-  const ownerRef = await updatedCategoryGroup.owner.get()
-  const owner = {
-    id: ownerRef.id,
-    ...ownerRef.data()
-  }
-
-  return {
-    id: updatedCategoryGroup.id,
-    name: updatedCategoryGroup.name,
-    owner,
-    sharedWith: await refsToData(updatedCategoryGroup.sharedWith)
-  }
+  return updatedCategoryGroup
 }
 
 export const deleteCategoryGroup = async (categoryGroupId: string, userId: string) => {
-  const categoryGroupRef = db.collection(collectionName).doc(categoryGroupId);
-  const categoryGroup = (await categoryGroupRef.get()).data() as CategoryGroup;
+  const categoryGroupRef = idsToRef(categoryGroupId, collectionName) as DocumentReference
+  const categoryGroup = await refsToData(categoryGroupRef)
+  if (!categoryGroup) {
+    throw new ApiError(HttpResponse.NOT_FOUND, "Category group doesn't exist.", categoryGroupId)
+  }
+
   if (categoryGroup.owner.id !== userId) {
     throw new ApiError(HttpResponse.FORBIDDEN, "You don't have permission to delete this category group.")
   }
