@@ -5,6 +5,12 @@ export enum TransactionType {
   Investment = "Investment"
 }
 
+export type User = {
+  id: string,
+  name: string,
+  email: string
+} 
+
 export type Transaction = {
   category: string,
   type: TransactionType,
@@ -13,21 +19,27 @@ export type Transaction = {
   note: string
 } 
 
+export type CategoryGroupInput = {
+  name: string;
+  sharedWith: string[];
+}
+
 export type CategoryGroup = {
   id: string;
   name: string;
-  owner: string;
-  sharedWith: string[];
+  owner: User;
+  sharedWith: User[];
 }
+
 export type Category = {
   id: string;
   name: string;
   categoryGroup: CategoryGroup,
-  owner: string;
+  owner: User;
   sharedWith: string[];
 }
 
-export type InputCategory = {
+export type CategoryInput = {
   name: string;
   categoryGroupId: string,
   sharedWith: string[];

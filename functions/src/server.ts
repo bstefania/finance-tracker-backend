@@ -7,6 +7,7 @@ import { apiErrorHandler } from "./middlewares/ErrorHandler"
 import {getEnvironmentVariable} from "./utils/EnvironmentVariable"
 import transactionsRouter from "./routes/Transaction"
 import categoryRouter from "./routes/Category"
+import categoryGroupRouter from "./routes/CategoryGroup"
 
 export const createServer = () => {
   const app: Application = express()
@@ -24,6 +25,7 @@ export const createServer = () => {
   app.use(checkUser)
   app.use(transactionsRouter)
   app.use(categoryRouter)
+  app.use(categoryGroupRouter)
 
   app.use(apiErrorHandler)
 

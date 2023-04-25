@@ -1,6 +1,6 @@
 import express, { NextFunction, Request, Response } from "express"
 import { createCategory } from "../controllers/Category"
-import { InputCategory } from "../types/General"
+import { CategoryInput } from "../types/General"
 import { sendResponse } from "../utils/ResponseGenerator"
 import { HttpResponse } from "../types/General"
 // import { checkBody } from "../utils/validators/Validations"
@@ -43,7 +43,7 @@ router.post(
   async (_req: Request, res: Response, next: NextFunction) => {
     try {
       // await checkBody(_req.body, CategoryPostDetails)
-      const category: InputCategory = _req.body
+      const category: CategoryInput = _req.body
       const uid = _req.headers.uid as string
       const insertedCategory = await createCategory(category, uid)
       sendResponse(HttpResponse.CREATED, null, insertedCategory, res)

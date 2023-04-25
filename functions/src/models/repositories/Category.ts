@@ -1,5 +1,5 @@
 import { db } from "../../firebase"
-import { Category, InputCategory } from '../../types/General'
+import { Category, CategoryInput } from '../../types/General'
 
 export const getCategories = async (userId: string) => {
   const querySnapshot = await db
@@ -28,7 +28,7 @@ export const getCategories = async (userId: string) => {
   return categories;
 }
 
-export const createCategory = async (category: InputCategory, userId: string): Promise<Category> => {
+export const createCategory = async (category: CategoryInput, userId: string): Promise<Category> => {
   const categoryRef = await db.collection('categories').add({
     name: category.name,
     categoryGroup: db.collection('categoryGroups').doc(category.categoryGroupId),

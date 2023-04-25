@@ -1,5 +1,5 @@
 import * as categoryOps from "../models/repositories/Category"
-import { Category, InputCategory } from "../types/General"
+import { Category, CategoryInput } from "../types/General"
 
   export const getCategories = async (userId: string) => {
     // return categoryOps.getCategories(userId)
@@ -9,7 +9,7 @@ import { Category, InputCategory } from "../types/General"
     // return categoryOps.getCategory(id, userId)
   }
 
-  export const createCategory = async (category: InputCategory, userId: string) => {
+  export const createCategory = async (category: CategoryInput, userId: string) => {
     return categoryOps.createCategory(category, userId)
   }
 
