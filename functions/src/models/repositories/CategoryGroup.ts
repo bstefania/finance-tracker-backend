@@ -2,11 +2,10 @@ import { DocumentReference } from 'firebase-admin/firestore';
 import { db } from "../../firebase"
 import { ApiError } from "../../middlewares/ErrorHandler";
 import { CategoryGroup, CategoryGroupInput, DocumentDetails, HttpResponse, User } from '../../types/General'
-import { checkIfDataExists, idsToRef, refsToData } from '../../utils/FirestoreData';
+import { checkAccess, checkIfDataAlreadyExists, idsToRef, refsToData } from '../../utils/FirestoreData';
 
 const collectionName = 'categoryGroups'
 const usersCollectionName = 'users'
-
 
 export const getCategoryGroups = async (userId: string) => {
   const userRef = await idsToRef(userId, usersCollectionName)
@@ -34,9 +33,7 @@ export const getCategoryGroup = async (
 ) => {
   const categoryGroupRef = await idsToRef(categoryGroupId, collectionName) as DocumentReference<FirebaseFirestore.DocumentData>
   const categoryGroup = await refsToData(categoryGroupRef) as unknown as CategoryGroup
-  if (!categoryGroup || categoryGroup.owner.id !== userId) {
-    throw new ApiError(HttpResponse.NOT_FOUND, "Category group not found.");
-  }
+  checkAccess(categoryGroup, userId)
   return categoryGroup
 }
 
@@ -47,7 +44,7 @@ export const createCategoryGroup = async (categoryGroup: CategoryGroupInput, use
   const details: DocumentDetails = {
     name: categoryGroup.name
   }
-  await checkIfDataExists(details, userRef, collection)
+  await checkIfDataAlreadyExists(details, userRef, collection)
 
   const categoryGroupRef = await collection.add({
     name: categoryGroup.name,
@@ -69,12 +66,7 @@ export const updateCategoryGroup = async (
   const categoryGroupRef = await idsToRef(categoryGroupId, collectionName) as DocumentReference
   const categoryGroup = await refsToData(categoryGroupRef) as unknown as CategoryGroup;
 
-  if (!categoryGroup) {
-    throw new ApiError(HttpResponse.NOT_FOUND, "Category group doesn't exist.", categoryGroupId)
-  }
-  if (categoryGroup.owner.id !== userId) {
-    throw new ApiError(HttpResponse.FORBIDDEN, "You don't have permission to update this category group.");
-  }
+  checkAccess(categoryGroup, userId)
 
   const newData: any = {};
   for (let [key, value] of Object.entries(categoryGroupUpdates)) {
@@ -99,13 +91,7 @@ export const updateCategoryGroup = async (
 export const deleteCategoryGroup = async (categoryGroupId: string, userId: string) => {
   const categoryGroupRef = await idsToRef(categoryGroupId, collectionName) as DocumentReference
   const categoryGroup = await refsToData(categoryGroupRef) as unknown as CategoryGroup
-  if (!categoryGroup) {
-    throw new ApiError(HttpResponse.NOT_FOUND, "Category group doesn't exist.", categoryGroupId)
-  }
-
-  if (categoryGroup.owner.id !== userId) {
-    throw new ApiError(HttpResponse.FORBIDDEN, "You don't have permission to delete this category group.")
-  }
+  checkAccess(categoryGroup, userId)
   await categoryGroupRef.delete();
   return {
     id: categoryGroupRef.id

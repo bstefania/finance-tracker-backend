@@ -1,6 +1,6 @@
 
 import { db } from "../firebase"
-import { CollectionReference, DocumentReference, Query } from 'firebase-admin/firestore';
+import { CollectionReference, DocumentData, DocumentReference, Query } from 'firebase-admin/firestore';
 import { Dictionary, DocumentDetails, HttpResponse } from '../types/General';
 import { ApiError } from '../middlewares/ErrorHandler';
 
@@ -44,7 +44,13 @@ export const idsToRef = async (input: string | string[], collectionName: string)
   return Promise.all(input.map((id: string) => { return idsToRef(id, collectionName) as Promise<DocumentReference> }))
 }
 
-export const checkIfDataExists = async (
+export const checkAccess = async (data: DocumentData | undefined, userId: string) => {
+  if (!data || (data.owner.id !== userId && !data.sharedWith.contains(userId))) {
+    throw new ApiError(HttpResponse.NOT_FOUND, "Item not found.");
+  }
+}
+
+export const checkIfDataAlreadyExists = async (
   details: DocumentDetails, userRef: DocumentReference, collection: CollectionReference) => {
   let mainQuery: Query = collection
 

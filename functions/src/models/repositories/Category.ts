@@ -2,7 +2,7 @@ import { DocumentReference } from 'firebase-admin/firestore';
 import { db } from "../../firebase"
 import { ApiError } from "../../middlewares/ErrorHandler";
 import { Category, CategoryGroup, CategoryInput, DocumentDetails, HttpResponse, User } from '../../types/General'
-import { checkIfDataExists, idsToRef, refsToData } from '../../utils/FirestoreData';
+import { checkAccess, checkIfDataAlreadyExists, idsToRef, refsToData } from '../../utils/FirestoreData';
 
 const collectionName = 'categories'
 const usersCollectionName = 'users'
@@ -35,22 +35,23 @@ export const getCategory = async (
 ) => {
   const categoryRef = await idsToRef(categoryId, collectionName) as DocumentReference<FirebaseFirestore.DocumentData>
   const category = await refsToData(categoryRef) as unknown as Category
-  if (!category || category.owner.id !== userId) {
-    throw new ApiError(HttpResponse.NOT_FOUND, "Category not found.");
-  }
+  checkAccess(category, userId)
   return category
 }
 
 export const createCategory = async (category: CategoryInput, userId: string) => {
+  const collection = db.collection(collectionName)
   const userRef = await idsToRef(userId, usersCollectionName) as DocumentReference
   const categoryGroupRef = await idsToRef(category.categoryGroupId, categoryGroupCollectionName) as DocumentReference
-  const collection = db.collection(collectionName)
+  
+  // make sure the user has access to the category group
+  checkAccess((await categoryGroupRef.get()).data(), userId)
 
   const details: DocumentDetails = {
     name: category.name,
     categoryGroup: categoryGroupRef
   }
-  await checkIfDataExists(details, userRef, collection)
+  await checkIfDataAlreadyExists(details, userRef, collection)
 
   const categoryRef = await db.collection(collectionName).add({
     name: category.name,
@@ -73,12 +74,7 @@ export const updateCategory = async (
   const categoryRef = await idsToRef(categoryId, collectionName) as DocumentReference
   const category = await refsToData(categoryRef) as unknown as Category;
 
-  if (!category) {
-    throw new ApiError(HttpResponse.NOT_FOUND, "Category doesn't exist.", categoryId)
-  }
-  if (category.owner.id !== userId) {
-    throw new ApiError(HttpResponse.FORBIDDEN, "You don't have permission to update this category.");
-  }
+  checkAccess(category, userId)
 
   const newData: any = {};
   for (let [key, value] of Object.entries(categoryUpdates)) {
@@ -88,6 +84,7 @@ export const updateCategory = async (
   }
   if (categoryUpdates.categoryGroupId) {
     newData.categoryGroup = await idsToRef(categoryUpdates.categoryGroupId, categoryGroupCollectionName)
+    checkAccess(newData.categoryGroup, userId)
   }
 
   if (categoryUpdates.sharedWith) {
@@ -107,13 +104,7 @@ export const updateCategory = async (
 export const deleteCategory = async (categoryId: string, userId: string) => {
   const categoryRef = await idsToRef(categoryId, collectionName) as DocumentReference
   const category = await refsToData(categoryRef) as unknown as Category
-  if (!category) {
-    throw new ApiError(HttpResponse.NOT_FOUND, "Category doesn't exist.", categoryId)
-  }
-
-  if (category.owner.id !== userId) {
-    throw new ApiError(HttpResponse.FORBIDDEN, "You don't have permission to delete this category.")
-  }
+  checkAccess(category, userId)
   await categoryRef.delete();
   return {
     id: categoryRef.id
