@@ -1,8 +1,8 @@
 import { DocumentReference } from 'firebase-admin/firestore';
 import { db } from "../../firebase"
 import { ApiError } from "../../middlewares/ErrorHandler";
-import { Category, CategoryGroup, CategoryInput, HttpResponse, User } from '../../types/General'
-import { idsToRef, refsToData } from '../../utils/FirestoreData';
+import { Category, CategoryGroup, CategoryInput, DocumentDetails, HttpResponse, User } from '../../types/General'
+import { checkIfDataExists, idsToRef, refsToData } from '../../utils/FirestoreData';
 
 const collectionName = 'categories'
 const usersCollectionName = 'users'
@@ -42,10 +42,20 @@ export const getCategory = async (
 }
 
 export const createCategory = async (category: CategoryInput, userId: string) => {
+  const userRef = await idsToRef(userId, usersCollectionName) as DocumentReference
+  const categoryGroupRef = await idsToRef(category.categoryGroupId, categoryGroupCollectionName) as DocumentReference
+  const collection = db.collection(collectionName)
+
+  const details: DocumentDetails = {
+    name: category.name,
+    categoryGroup: categoryGroupRef
+  }
+  await checkIfDataExists(details, userRef, collection)
+
   const categoryRef = await db.collection(collectionName).add({
     name: category.name,
-    owner: await idsToRef(userId, usersCollectionName),
-    categoryGroup: await idsToRef(category.categoryGroupId, categoryGroupCollectionName),
+    owner: userRef,
+    categoryGroup: categoryGroupRef,
     sharedWith: await idsToRef(category.sharedWith, usersCollectionName),
   })
   if (!categoryRef) {

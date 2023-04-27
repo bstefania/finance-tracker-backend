@@ -1,8 +1,11 @@
 
 import { db } from "../firebase"
-import { DocumentReference } from 'firebase-admin/firestore';
-import { Dictionary, HttpResponse } from '../types/General';
+import { CollectionReference, DocumentReference, Query } from 'firebase-admin/firestore';
+import { Dictionary, DocumentDetails, HttpResponse } from '../types/General';
 import { ApiError } from '../middlewares/ErrorHandler';
+
+const ownerField = "owner"
+const groupField = "sharedWith"
 
 export const refsToData = async (input: DocumentReference | DocumentReference[])
   : Promise<Dictionary | Dictionary[] | undefined> => {
@@ -28,7 +31,8 @@ export const refsToData = async (input: DocumentReference | DocumentReference[])
   })) as Promise<Dictionary[]>
 }
 
-export const idsToRef = async (input: string | string[], collectionName: string): Promise<DocumentReference | DocumentReference[]> => {
+export const idsToRef = async (input: string | string[], collectionName: string)
+  : Promise<DocumentReference | DocumentReference[]> => {
   if (typeof input === "string") {
     const doc = db.collection(collectionName).doc(input)
     if (!(await doc.get()).exists) {
@@ -39,3 +43,18 @@ export const idsToRef = async (input: string | string[], collectionName: string)
 
   return Promise.all(input.map((id: string) => { return idsToRef(id, collectionName) as Promise<DocumentReference> }))
 }
+
+export const checkIfDataExists = async (
+  details: DocumentDetails, userRef: DocumentReference, collection: CollectionReference) => {
+  let mainQuery: Query = collection
+
+  for (let [key, value] of Object.entries(details)) {
+    mainQuery = mainQuery.where(
+      key, '==', value
+    )
+  }
+  if (!(await mainQuery.where(ownerField, '==', userRef).get()).empty
+    || !(await mainQuery.where(groupField, 'array-contains', userRef).get()).empty) {
+    throw new ApiError(HttpResponse.BAD_REQUEST, "Item with the same name already exists.");
+  }
+} 

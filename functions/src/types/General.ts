@@ -1,3 +1,5 @@
+import { DocumentReference } from "firebase-admin/firestore"
+
 export enum TransactionType {
   Income = "Income",
   Expense = "Expense",
@@ -52,6 +54,10 @@ export enum Frequency {
 
 export type Dictionary = {
   [key: string]: string
+}
+
+export type DocumentDetails = {
+  [key: string]: string | DocumentReference
 }
 
 export enum HttpResponse {
