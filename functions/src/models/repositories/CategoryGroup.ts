@@ -9,7 +9,7 @@ const usersCollectionName = 'users'
 
 
 export const getCategoryGroups = async (userId: string) => {
-  const userRef = idsToRef(userId, usersCollectionName)
+  const userRef = await idsToRef(userId, usersCollectionName)
   const querySnapshot = await db
     .collection(collectionName)
     .where('owner', '==', userRef)
@@ -32,7 +32,7 @@ export const getCategoryGroup = async (
   categoryGroupId: string,
   userId: string
 ) => {
-  const categoryGroupRef = idsToRef(categoryGroupId, collectionName) as DocumentReference<FirebaseFirestore.DocumentData>
+  const categoryGroupRef = await idsToRef(categoryGroupId, collectionName) as DocumentReference<FirebaseFirestore.DocumentData>
   const categoryGroup = await refsToData(categoryGroupRef) as unknown as CategoryGroup
   if (!categoryGroup || categoryGroup.owner.id !== userId) {
     throw new ApiError(HttpResponse.NOT_FOUND, "Category group not found.");
@@ -43,8 +43,8 @@ export const getCategoryGroup = async (
 export const createCategoryGroup = async (categoryGroup: CategoryGroupInput, userId: string) => {
   const categoryGroupRef = await db.collection(collectionName).add({
     name: categoryGroup.name,
-    owner: idsToRef(userId, usersCollectionName),
-    sharedWith: idsToRef(categoryGroup.sharedWith, usersCollectionName),
+    owner: await idsToRef(userId, usersCollectionName),
+    sharedWith: await idsToRef(categoryGroup.sharedWith, usersCollectionName),
   })
   if (!categoryGroupRef) {
     throw new ApiError(HttpResponse.INTERNAL_SERVER_ERROR, "Category group could not be created.")
@@ -58,7 +58,7 @@ export const updateCategoryGroup = async (
   categoryGroupUpdates: Partial<CategoryGroupInput>,
   userId: string
 ) => {
-  const categoryGroupRef = idsToRef(categoryGroupId, collectionName) as DocumentReference
+  const categoryGroupRef = await idsToRef(categoryGroupId, collectionName) as DocumentReference
   const categoryGroup = await refsToData(categoryGroupRef) as unknown as CategoryGroup;
 
   if (!categoryGroup) {
@@ -75,7 +75,7 @@ export const updateCategoryGroup = async (
     }
   }
   if (categoryGroupUpdates.sharedWith) {
-    newData.sharedWith = idsToRef(categoryGroupUpdates.sharedWith, usersCollectionName)
+    newData.sharedWith = await idsToRef(categoryGroupUpdates.sharedWith, usersCollectionName)
   }
 
   await categoryGroupRef.update(newData);
@@ -89,7 +89,7 @@ export const updateCategoryGroup = async (
 }
 
 export const deleteCategoryGroup = async (categoryGroupId: string, userId: string) => {
-  const categoryGroupRef = idsToRef(categoryGroupId, collectionName) as DocumentReference
+  const categoryGroupRef = await idsToRef(categoryGroupId, collectionName) as DocumentReference
   const categoryGroup = await refsToData(categoryGroupRef) as unknown as CategoryGroup
   if (!categoryGroup) {
     throw new ApiError(HttpResponse.NOT_FOUND, "Category group doesn't exist.", categoryGroupId)
