@@ -1,10 +1,11 @@
 
 import { db } from "../firebase"
 import { DocumentReference } from 'firebase-admin/firestore';
-import { Dictionary } from '../types/General';
+import { Dictionary, HttpResponse } from '../types/General';
+import { ApiError } from '../middlewares/ErrorHandler';
 
 export const refsToData = async (input: DocumentReference | DocumentReference[])
-: Promise<Dictionary | Dictionary[] | undefined> => {
+  : Promise<Dictionary | Dictionary[] | undefined> => {
   if (input instanceof DocumentReference) {
     const doc = await input.get()
     if (!doc.exists) return
@@ -27,11 +28,14 @@ export const refsToData = async (input: DocumentReference | DocumentReference[])
   })) as Promise<Dictionary[]>
 }
 
-export const idsToRef = (input: string | string[], collectionName: string) => {
+export const idsToRef = async (input: string | string[], collectionName: string): Promise<DocumentReference | DocumentReference[]> => {
   if (typeof input === "string") {
-    return db.collection(collectionName).doc(input)
+    const doc = db.collection(collectionName).doc(input)
+    if (!(await doc.get()).exists) {
+      throw new ApiError(HttpResponse.NOT_FOUND, `Item with id ${input} doesn't exist!`)
+    }
+    return doc as DocumentReference;
   }
-  return input.map((id) =>
-    db.collection(collectionName).doc(id)
-  )
+
+  return Promise.all(input.map((id: string) => { return idsToRef(id, collectionName) as Promise<DocumentReference> }))
 }
