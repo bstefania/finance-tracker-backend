@@ -1,7 +1,7 @@
 import { DocumentReference } from 'firebase-admin/firestore';
 import { db } from "../../firebase"
 import { ApiError } from "../../middlewares/ErrorHandler";
-import { CategoryGroupInput, HttpResponse, User } from '../../types/General'
+import { CategoryGroup, CategoryGroupInput, HttpResponse, User } from '../../types/General'
 import { idsToRef, refsToData } from '../../utils/FirestoreData';
 
 const collectionName = 'categoryGroups'
@@ -33,7 +33,7 @@ export const getCategoryGroup = async (
   userId: string
 ) => {
   const categoryGroupRef = idsToRef(categoryGroupId, collectionName) as DocumentReference<FirebaseFirestore.DocumentData>
-  const categoryGroup = await refsToData(categoryGroupRef)
+  const categoryGroup = await refsToData(categoryGroupRef) as unknown as CategoryGroup
   if (!categoryGroup || categoryGroup.owner.id !== userId) {
     throw new ApiError(HttpResponse.NOT_FOUND, "Category group not found.");
   }
@@ -59,7 +59,7 @@ export const updateCategoryGroup = async (
   userId: string
 ) => {
   const categoryGroupRef = idsToRef(categoryGroupId, collectionName) as DocumentReference
-  const categoryGroup = await refsToData(categoryGroupRef);
+  const categoryGroup = await refsToData(categoryGroupRef) as unknown as CategoryGroup;
 
   if (!categoryGroup) {
     throw new ApiError(HttpResponse.NOT_FOUND, "Category group doesn't exist.", categoryGroupId)
@@ -90,7 +90,7 @@ export const updateCategoryGroup = async (
 
 export const deleteCategoryGroup = async (categoryGroupId: string, userId: string) => {
   const categoryGroupRef = idsToRef(categoryGroupId, collectionName) as DocumentReference
-  const categoryGroup = await refsToData(categoryGroupRef)
+  const categoryGroup = await refsToData(categoryGroupRef) as unknown as CategoryGroup
   if (!categoryGroup) {
     throw new ApiError(HttpResponse.NOT_FOUND, "Category group doesn't exist.", categoryGroupId)
   }
