@@ -1,7 +1,8 @@
 import { DocumentReference } from 'firebase-admin/firestore';
 import { db } from "../../firebase"
 import { ApiError } from "../../middlewares/ErrorHandler";
-import { CategoryGroup, CategoryGroupInput, DocumentDetails, HttpResponse, User } from '../../types/General'
+import { CategoryGroupInput, CategoryGroup, User } from '../../types/Database';
+import { DocumentDetails, HttpResponse } from '../../types/General'
 import { checkAccess, checkIfDataAlreadyExists, idsToRef, refsToData } from '../../utils/FirestoreData';
 
 const collectionName = 'categoryGroups'

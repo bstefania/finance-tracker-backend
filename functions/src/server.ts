@@ -5,9 +5,9 @@ import { connectToFirebase } from "./firebase"
 import { checkUser } from "./middlewares/Authentication"
 import { apiErrorHandler } from "./middlewares/ErrorHandler"
 import {getEnvironmentVariable} from "./utils/EnvironmentVariable"
-import transactionsRouter from "./routes/Transaction"
 import categoryRouter from "./routes/Category"
 import categoryGroupRouter from "./routes/CategoryGroup"
+import transactionRouter from "./routes/Transaction"
 
 export const createServer = () => {
   const app: Application = express()
@@ -23,9 +23,9 @@ export const createServer = () => {
   })
 
   app.use(checkUser)
-  app.use(transactionsRouter)
-  app.use(categoryRouter)
   app.use(categoryGroupRouter)
+  app.use(categoryRouter)
+  app.use(transactionRouter)
 
   app.use(apiErrorHandler)
 

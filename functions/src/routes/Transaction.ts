@@ -1,16 +1,10 @@
 import express, { NextFunction, Request, Response } from "express"
-import TransactionController from "../controllers/Transaction"
-import { Transaction } from "../types/General"
+import * as controller from "../controllers/Transaction"
 import { sendResponse } from "../utils/ResponseGenerator"
 import { HttpResponse } from "../types/General"
-// import { checkBody } from "../utils/validators/Validations"
-// import {
-//   TransactionPostDetails,
-//   TransactionPatchDetails,
-// } from "../utils/validators/TransactionValidations"
+import { TransactionInput } from "../types/Database"
 
 const router: express.Router = express.Router()
-const controller: TransactionController = new TransactionController()
 
 router.get(
   "/transactions",
@@ -43,8 +37,7 @@ router.post(
   "/transactions",
   async (_req: Request, res: Response, next: NextFunction) => {
     try {
-      // await checkBody(_req.body, TransactionPostDetails)
-      const transaction: Transaction = _req.body
+      const transaction: TransactionInput = _req.body
       const uid = _req.headers.uid as string
       const insertedTransaction = await controller.createTransaction(transaction, uid)
       sendResponse(HttpResponse.CREATED, null, insertedTransaction, res)
@@ -58,9 +51,8 @@ router.patch(
   "/transactions/:transactionId",
   async (_req: Request, res: Response, next: NextFunction) => {
     try {
-      // await checkBody(_req.body, TransactionPatchDetails)
       const id = _req.params.transactionId
-      const transaction: Transaction = _req.body
+      const transaction: Partial<TransactionInput> = _req.body
       const uid = _req.headers.uid as string
       const updatedTransaction = await controller.updateTransaction(id, transaction, uid)
       sendResponse(HttpResponse.OK, null, updatedTransaction, res)
