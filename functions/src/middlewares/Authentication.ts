@@ -1,7 +1,7 @@
 import { NextFunction } from 'express'
 import { ApiError } from "./ErrorHandler"
 import { HttpResponse } from "../types/General"
-import admin from 'firebase-admin';
+// import admin from 'firebase-admin';
 import { Request, Response } from 'express';
 
 export async function checkUser(
@@ -12,39 +12,40 @@ export async function checkUser(
   const unauthorizedStatusCode = HttpResponse.UNAUTHORIZED
 
   try {
-      const header = req.headers.authorization;
-      if (!header) {
-        throw new ApiError(
-          HttpResponse.UNAUTHORIZED,
-          "Authorization header not provided!"
-        )
-      }
-      if (!header.startsWith("Bearer ")) {
-        throw new ApiError(
-          HttpResponse.UNAUTHORIZED,
-          "Only Bearer tokens are supported!"
-        )
-      }
-
-      const token = header.substring(7, header.length)
-
-      if (!token) {
-        throw new ApiError(
-          HttpResponse.UNAUTHORIZED,
-          "'Unauthorized Header. Access Denied!"
-        )
-      }
-      //reference => https://firebase.google.com/docs/auth/admin/manage-sessions
-      const decodedToken = await admin.auth().verifyIdToken(token)
-      if (decodedToken.uid) {
-        req.headers.uid = decodedToken.uid;
-      } else {
-        new ApiError(unauthorizedStatusCode, "User not found!")
-      }
-      // if (!decodedToken.email_verified) {
-      //   return res.status(401).send('Your email needs to be verified.')
+      // const header = req.headers.authorization;
+      // if (!header) {
+      //   throw new ApiError(
+      //     HttpResponse.UNAUTHORIZED,
+      //     "Authorization header not provided!"
+      //   )
       // }
-      console.log(decodedToken)
+      // if (!header.startsWith("Bearer ")) {
+      //   throw new ApiError(
+      //     HttpResponse.UNAUTHORIZED,
+      //     "Only Bearer tokens are supported!"
+      //   )
+      // }
+
+      // const token = header.substring(7, header.length)
+
+      // if (!token) {
+      //   throw new ApiError(
+      //     HttpResponse.UNAUTHORIZED,
+      //     "'Unauthorized Header. Access Denied!"
+      //   )
+      // }
+      // //reference => https://firebase.google.com/docs/auth/admin/manage-sessions
+      // const decodedToken = await admin.auth().verifyIdToken(token)
+      // if (decodedToken.uid) {
+      //   req.headers.uid = decodedToken.uid;
+      // } else {
+      //   new ApiError(unauthorizedStatusCode, "User not found!")
+      // }
+      // // if (!decodedToken.email_verified) {
+      // //   return res.status(401).send('Your email needs to be verified.')
+      // // }
+      // console.log(decodedToken)
+      req.headers.uid = "UIKVKWFhY2DMr7qVL4n7"
       next();
   } catch (err: any) {
     let processedErr

@@ -33,6 +33,18 @@ router.get(
   }
 )
 
+router.get(
+  "/transactionTypes",
+  async (_req: Request, res: Response, next: NextFunction) => {
+    try {
+      const transactions = await controller.getTransactionTypes()
+      sendResponse(HttpResponse.OK, null, transactions, res)
+    } catch (err) {
+      next(err)
+    }
+  }
+)
+
 router.post(
   "/transactions",
   async (_req: Request, res: Response, next: NextFunction) => {

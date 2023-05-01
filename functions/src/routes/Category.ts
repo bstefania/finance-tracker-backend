@@ -1,7 +1,8 @@
 import express, { NextFunction, Request, Response } from "express"
 import * as controller from "../controllers/Category"
 import { sendResponse } from "../utils/ResponseGenerator"
-import { CategoryInput, HttpResponse } from "../types/General"
+import { HttpResponse } from "../types/General"
+import { CategoryInput } from "../types/Database"
 
 const router: express.Router = express.Router()
 

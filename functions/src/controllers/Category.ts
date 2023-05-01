@@ -1,5 +1,5 @@
 import * as categoryOps from "../models/repositories/Category"
-import { CategoryInput } from "../types/General"
+import { CategoryInput } from "../types/Database"
 
   export const getCategories = async (userId: string) => {
     return categoryOps.getCategories(userId)

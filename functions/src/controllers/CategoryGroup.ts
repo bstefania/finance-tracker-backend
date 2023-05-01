@@ -1,5 +1,5 @@
 import * as categoryGroupOps from "../models/repositories/CategoryGroup"
-import { CategoryGroupInput } from "../types/General"
+import { CategoryGroupInput } from "../types/Database"
 
   export const getCategoryGroups = async (userId: string) => {
     return categoryGroupOps.getCategoryGroups(userId)

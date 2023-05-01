@@ -1,7 +1,9 @@
 import express, { NextFunction, Request, Response } from "express"
 import * as controller from "../controllers/CategoryGroup"
 import { sendResponse } from "../utils/ResponseGenerator"
-import { CategoryGroupInput, HttpResponse } from "../types/General"
+import { HttpResponse } from "../types/General"
+import { CategoryGroupInput } from "../types/Database"
+
 // import { checkBody } from "../utils/validators/Validations"
 // import {
 //   CategoryGroupPostDetails,

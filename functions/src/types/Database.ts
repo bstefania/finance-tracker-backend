@@ -25,7 +25,7 @@ export type Transaction = {
   category: Category,
   type: TransactionType,
   amount: number,
-  createdAt: Date,
+  createdAt: string | Date,
   note: string,
   owner: User,
   sharedWith: User[];
