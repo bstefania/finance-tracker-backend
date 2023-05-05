@@ -14,6 +14,7 @@ export const getTransactions = async (userId: string) => {
   const querySnapshot = await db
     .collection(collectionName)
     .where('owner', '==', userRef)
+    .orderBy('createdAt', 'desc')
     .get();
 
   const owner = await refsToData(userRef) as User
@@ -24,7 +25,7 @@ export const getTransactions = async (userId: string) => {
       id: ref.id,
       type: data.type,
       amount: data.amount,
-      createdAt: data.cretedAt.to,
+      createdAt: data.createdAt.toDate(),
       note: data.note,
       category: await refsToData(data.category) as unknown as Category,
       owner,
@@ -44,6 +45,7 @@ export const getTransaction = async (
 }
 
 export const createTransaction = async (transaction: TransactionInput, userId: string) => {
+  console.log(transaction)
   const userRef = await idsToRef(userId, usersCollectionName) as DocumentReference
   const categoryRef = await idsToRef(transaction.categoryId, categoriesCollectionName) as DocumentReference
 
