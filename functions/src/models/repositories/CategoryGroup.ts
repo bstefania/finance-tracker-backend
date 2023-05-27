@@ -15,7 +15,7 @@ export const getCategoryGroups = async (userId: string) => {
     .where('owner', '==', userRef)
     .get();
 
-  const owner = await refsToData(userRef) as User
+  const owner = await refsToData(userRef) as unknown as User
 
   return Promise.all(querySnapshot.docs.map(async (ref) => {
     const data = ref.data();
@@ -23,7 +23,7 @@ export const getCategoryGroups = async (userId: string) => {
       id: ref.id,
       name: data.name,
       owner,
-      sharedWith: await refsToData(data.sharedWith) as User[],
+      sharedWith: await refsToData(data.sharedWith) as unknown as User[],
     };
   }))
 }

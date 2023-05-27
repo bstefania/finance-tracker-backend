@@ -8,8 +8,23 @@ export enum TransactionType {
 export type User = {
   id: string,
   name: string,
-  email: string
+  email: string,
+  wealth: {
+    wallet: number,
+    savings: number,
+    investments: number
+  }
 } 
+
+export type UserInput = {
+  name: string,
+  email: string,
+  wealth: {
+    wallet: number,
+    savings: number,
+    investments: number
+  }
+}
 
 export type TransactionInput = {
   categoryId: string,

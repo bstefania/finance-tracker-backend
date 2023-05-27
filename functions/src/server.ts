@@ -1,13 +1,14 @@
-import express, {Application} from "express"
+import express, { Application } from "express"
 import morgan from "morgan"
 import cors from "cors"
 import { connectToFirebase } from "./firebase"
 import { checkUser } from "./middlewares/Authentication"
 import { apiErrorHandler } from "./middlewares/ErrorHandler"
-import {getEnvironmentVariable} from "./utils/EnvironmentVariable"
+import { getEnvironmentVariable } from "./utils/EnvironmentVariable"
 import categoryRouter from "./routes/Category"
 import categoryGroupRouter from "./routes/CategoryGroup"
 import transactionRouter from "./routes/Transaction"
+import userRouter from "./routes/User"
 
 export const createServer = () => {
   const app: Application = express()
@@ -15,7 +16,7 @@ export const createServer = () => {
   app.use(express.json())
   app.use(morgan("tiny"))
   app.use(express.static("public"))
-  app.use(cors({origin: getEnvironmentVariable("WEB_FRONTEND_URL")}))
+  app.use(cors({ origin: getEnvironmentVariable("WEB_FRONTEND_URL") }))
   connectToFirebase()
 
   app.get("/", (req, res) => {
@@ -26,7 +27,8 @@ export const createServer = () => {
   app.use(categoryGroupRouter)
   app.use(categoryRouter)
   app.use(transactionRouter)
-
+  app.use(userRouter)
+  
   app.use(apiErrorHandler)
 
   return app
