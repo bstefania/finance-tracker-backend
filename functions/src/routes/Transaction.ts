@@ -11,7 +11,8 @@ router.get(
   async (_req: Request, res: Response, next: NextFunction) => {
     try {
       const uid = _req.headers.uid as string
-      const transactions = await controller.getTransactions(uid)
+      const queryParams = _req.query as Record<string, string>
+      const transactions = await controller.getTransactions(uid, queryParams)
       sendResponse(HttpResponse.OK, null, transactions, res)
     } catch (err) {
       next(err)

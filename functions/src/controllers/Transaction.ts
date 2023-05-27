@@ -1,8 +1,8 @@
 import * as transactionOps from "../models/repositories/Transaction"
 import { TransactionInput, TransactionType } from "../types/Database"
 
-export const getTransactions = async (userId: string) => {
-    return transactionOps.getTransactions(userId)
+export const getTransactions = async (userId: string, queryParams: Record<string, string>) => {
+    return transactionOps.getTransactions(userId, queryParams)
   }
 
   export const getTransaction = async (id: string, userId: string) => {

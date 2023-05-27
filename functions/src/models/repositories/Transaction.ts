@@ -9,15 +9,34 @@ const collectionName = 'transactions'
 const usersCollectionName = 'users'
 const categoriesCollectionName = "categories"
 
-export const getTransactions = async (userId: string) => {
-  const userRef = await idsToRef(userId, usersCollectionName)
-  const querySnapshot = await db
-    .collection(collectionName)
-    .where('owner', '==', userRef)
-    .orderBy('createdAt', 'desc')
-    .get();
+export const getTransactions = async (userId: string, queryParams: Record<string, string>) => {
+  const userRef = await idsToRef(userId, usersCollectionName);
 
-  const owner = await refsToData(userRef) as User
+  let query = db.collection(collectionName).where('owner', '==', userRef);
+
+  if (queryParams.type) {
+    query = query.where('type', '==', queryParams.type);
+  }
+
+  if (queryParams.createdAtStart) {
+    const startDate = new Date(queryParams.createdAtStart);
+    query = query.where('createdAt', '>=', startDate);
+  }
+
+  if (queryParams.createdAtEnd) {
+    const endDate = new Date(queryParams.createdAtEnd);
+    query = query.where('createdAt', '<=', endDate);
+  }
+
+  if (queryParams.category) {
+    const categoryRef = await idsToRef(queryParams.category, categoriesCollectionName);
+    query = query.where('category', '==', categoryRef);
+  }
+
+  query = query.orderBy('createdAt', 'desc');
+
+  const querySnapshot = await query.get();
+  const owner = await refsToData(userRef) as unknown as User;
 
   return Promise.all(querySnapshot.docs.map(async (ref) => {
     const data = ref.data();
@@ -29,7 +48,7 @@ export const getTransactions = async (userId: string) => {
       note: data.note,
       category: await refsToData(data.category) as unknown as Category,
       owner,
-      sharedWith: await refsToData(data.sharedWith) as User[],
+      sharedWith: await refsToData(data.sharedWith) as unknown as User[],
     };
   }))
 }
