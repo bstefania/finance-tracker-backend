@@ -1,6 +1,6 @@
 import { DocumentReference } from "firebase-admin/firestore"
 import { ApiError } from "../../middlewares/ErrorHandler"
-import { User, UserInput } from "../../types/Database"
+import { User, Wealth } from "../../types/Database"
 import { HttpResponse } from "../../types/General"
 import { idsToRef, refsToData } from "../../utils/FirestoreData"
 
@@ -16,9 +16,10 @@ export const getWealth = async (
   }
 }
 
-export const updateWealth = async (wealthUpdates: Partial<UserInput>, userId: string) => {
+export const updateWealth = async (wealthUpdates: Wealth, userId: string) => {
   const userRef = await idsToRef(userId, collectionName) as DocumentReference<FirebaseFirestore.DocumentData>
-  const newData: any = {};
+  const user = await refsToData(userRef) as unknown as User;
+  const newData: any = {...user.wealth};
 
   for (let [key, value] of Object.entries(wealthUpdates)) {
     newData[key] = value;

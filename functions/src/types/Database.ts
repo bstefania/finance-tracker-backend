@@ -1,29 +1,29 @@
 export enum TransactionType {
-  Income = "Income",
-  Expense = "Expense",
-  Saving = "Saving",
-  Investment = "Investment"
+  Income = "income",
+  Expense = "expense",
+  Savings = "savings",
+  Investments = "investments",
+  Credit = "credit"
+}
+
+export type Wealth = {
+  income: number,
+  savings: number,
+  investments: number,
+  credit: number
 }
 
 export type User = {
   id: string,
   name: string,
   email: string,
-  wealth: {
-    wallet: number,
-    savings: number,
-    investments: number
-  }
+  wealth: Wealth
 } 
 
 export type UserInput = {
   name: string,
   email: string,
-  wealth: {
-    wallet: number,
-    savings: number,
-    investments: number
-  }
+  wealth: Wealth
 }
 
 export type TransactionInput = {
