@@ -64,27 +64,42 @@ export const getTransaction = async (
 }
 
 export const createTransaction = async (transaction: TransactionInput, userId: string) => {
-  console.log(transaction)
-  const userRef = await idsToRef(userId, usersCollectionName) as DocumentReference
-  const categoryRef = await idsToRef(transaction.categoryId, categoriesCollectionName) as DocumentReference
+  const firestoreTransaction = db.runTransaction(async () => {
+    const userRef = await idsToRef(userId, usersCollectionName) as DocumentReference
+    const user = await refsToData(userRef) as unknown as User;
+    const categoryRef = await idsToRef(transaction.categoryId, categoriesCollectionName) as DocumentReference
+  
+    // make sure the user has access to the category
+    checkAccess((await categoryRef.get()).data(), userId)
+  
+    const transactionRef = await db.collection(collectionName).add({
+      type: transaction.type,
+      amount: transaction.amount,
+      createdAt: new Date(transaction.createdAt),
+      note: transaction.note,
+      category: categoryRef,
+      owner: userRef,
+      sharedWith: await idsToRef(transaction.sharedWith, usersCollectionName),
+    })
 
-  // make sure the user has access to the category
-  checkAccess((await categoryRef.get()).data(), userId)
+    if (!transactionRef) {
+      throw new ApiError(HttpResponse.INTERNAL_SERVER_ERROR, "Transaction could not be created.")
+    }
+  
+    user.wealth[transaction.source] -= transaction.amount;
+    await userRef.update({ wealth: user.wealth });
 
-  const transactionRef = await db.collection(collectionName).add({
-    type: transaction.type,
-    amount: transaction.amount,
-    createdAt: new Date(transaction.createdAt),
-    note: transaction.note,
-    category: categoryRef,
-    owner: userRef,
-    sharedWith: await idsToRef(transaction.sharedWith, usersCollectionName),
+    return refsToData(transactionRef);
   })
-  if (!transactionRef) {
-    throw new ApiError(HttpResponse.INTERNAL_SERVER_ERROR, "Transaction could not be created.")
-  }
-
-  return refsToData(transactionRef);
+  
+  firestoreTransaction
+  .then((data) => {
+    console.log('Transaction created.');
+    return data;
+  })
+  .catch((error) => {
+    console.error('Transaction failed:', error);
+  });
 }
 
 export const updateTransaction = async (

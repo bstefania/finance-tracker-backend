@@ -16,7 +16,7 @@ export const getWealth = async (
   }
 }
 
-export const updateWealth = async (wealthUpdates: Wealth, userId: string) => {
+export const updateWealth = async (wealthUpdates: Partial<Wealth>, userId: string) => {
   const userRef = await idsToRef(userId, collectionName) as DocumentReference<FirebaseFirestore.DocumentData>
   const user = await refsToData(userRef) as unknown as User;
   const newData: any = {...user.wealth};

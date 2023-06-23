@@ -26,7 +26,14 @@ export type UserInput = {
   wealth: Wealth
 }
 
+export enum TransactionSource {
+  Income = "income",
+  Savings = "savings",
+  Investments = "investments"
+}
+
 export type TransactionInput = {
+  source: TransactionSource,
   categoryId: string,
   type: TransactionType,
   amount: number,
