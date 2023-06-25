@@ -63,8 +63,8 @@ export const getTransaction = async (
   return transaction
 }
 
+// TODO: rollback
 export const createTransaction = async (transaction: TransactionInput, userId: string) => {
-  const firestoreTransaction = db.runTransaction(async () => {
     const userRef = await idsToRef(userId, usersCollectionName) as DocumentReference
     const user = await refsToData(userRef) as unknown as User;
     const categoryRef = await idsToRef(transaction.categoryId, categoriesCollectionName) as DocumentReference
@@ -90,16 +90,6 @@ export const createTransaction = async (transaction: TransactionInput, userId: s
     await userRef.update({ wealth: user.wealth });
 
     return refsToData(transactionRef);
-  })
-  
-  firestoreTransaction
-  .then((data) => {
-    console.log('Transaction created.');
-    return data;
-  })
-  .catch((error) => {
-    console.error('Transaction failed:', error);
-  });
 }
 
 export const updateTransaction = async (
