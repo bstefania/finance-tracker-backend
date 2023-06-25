@@ -2,7 +2,7 @@ import { DocumentReference } from 'firebase-admin/firestore';
 import { db } from "../../firebase"
 import { ApiError } from "../../middlewares/ErrorHandler";
 import { HttpResponse } from '../../types/General'
-import { Category, Transaction, TransactionInput, User } from '../../types/Database'
+import { Category, Transaction, TransactionInput, TransactionSource, TransactionType, User } from '../../types/Database'
 import { checkAccess, idsToRef, refsToData } from '../../utils/FirestoreData';
 
 const collectionName = 'transactions'
@@ -65,31 +65,55 @@ export const getTransaction = async (
 
 // TODO: rollback
 export const createTransaction = async (transaction: TransactionInput, userId: string) => {
-    const userRef = await idsToRef(userId, usersCollectionName) as DocumentReference
-    const user = await refsToData(userRef) as unknown as User;
-    const categoryRef = await idsToRef(transaction.categoryId, categoriesCollectionName) as DocumentReference
-  
-    // make sure the user has access to the category
-    checkAccess((await categoryRef.get()).data(), userId)
-  
-    const transactionRef = await db.collection(collectionName).add({
-      type: transaction.type,
-      amount: transaction.amount,
-      createdAt: new Date(transaction.createdAt),
-      note: transaction.note,
-      category: categoryRef,
-      owner: userRef,
-      sharedWith: await idsToRef(transaction.sharedWith, usersCollectionName),
-    })
+  const userRef = await idsToRef(userId, usersCollectionName) as DocumentReference
+  const user = await refsToData(userRef) as unknown as User;
+  const categoryRef = await idsToRef(transaction.categoryId, categoriesCollectionName) as DocumentReference
 
-    if (!transactionRef) {
-      throw new ApiError(HttpResponse.INTERNAL_SERVER_ERROR, "Transaction could not be created.")
+  // make sure the user has access to the category
+  checkAccess((await categoryRef.get()).data(), userId)
+
+  const transactionRef = await db.collection(collectionName).add({
+    type: transaction.type,
+    amount: transaction.amount,
+    createdAt: new Date(transaction.createdAt),
+    note: transaction.note,
+    category: categoryRef,
+    owner: userRef,
+    sharedWith: await idsToRef(transaction.sharedWith, usersCollectionName),
+  })
+
+  if (!transactionRef) {
+    throw new ApiError(HttpResponse.INTERNAL_SERVER_ERROR, "Transaction could not be created.")
+  }
+
+  await updateWealth(user, userRef, transaction.type, transaction.source, transaction.amount)
+  return refsToData(transactionRef);
+}
+
+const updateWealth = async (
+  user: User,
+  userRef: DocumentReference<FirebaseFirestore.DocumentData>,
+  transactionType: TransactionType,
+  transactionSource: TransactionSource,
+  amount: number) => {
+
+    switch(transactionType) {
+      case TransactionType.Expense:
+        user.wealth[transactionSource] -= amount;
+        break;
+      case TransactionType.Income:
+        user.wealth[transactionSource] += amount;
+        break;
+      case TransactionType.Savings:
+      case TransactionType.Investments:
+        user.wealth[transactionType] += amount
+        user.wealth[transactionSource] -= amount
+        break;
+      default:
+        break;
     }
-  
-    user.wealth[transaction.source] -= transaction.amount;
-    await userRef.update({ wealth: user.wealth });
+  await userRef.update({ wealth: user.wealth });
 
-    return refsToData(transactionRef);
 }
 
 export const updateTransaction = async (
