@@ -113,7 +113,6 @@ const updateWealth = async (
         break;
     }
   await userRef.update({ wealth: user.wealth });
-
 }
 
 export const updateTransaction = async (

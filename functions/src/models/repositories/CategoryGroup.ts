@@ -22,6 +22,7 @@ export const getCategoryGroups = async (userId: string) => {
     return {
       id: ref.id,
       name: data.name,
+      color: data.color,
       owner,
       sharedWith: await refsToData(data.sharedWith) as unknown as User[],
     };
@@ -49,6 +50,7 @@ export const createCategoryGroup = async (categoryGroup: CategoryGroupInput, use
 
   const categoryGroupRef = await collection.add({
     name: categoryGroup.name,
+    color: categoryGroup.color,
     owner: userRef,
     sharedWith: await idsToRef(categoryGroup.sharedWith, usersCollectionName),
   })
