@@ -2,7 +2,7 @@
   "compilerOptions": {
     "module": "commonjs",
     "noImplicitReturns": true,
-    "noUnusedLocals": true,
+    "noUnusedLocals": false,
     "sourceMap": true,
     "target": "es2017",
     "experimentalDecorators": true,                   /* Enable experimental support for TC39 stage 2 draft decorators. */
