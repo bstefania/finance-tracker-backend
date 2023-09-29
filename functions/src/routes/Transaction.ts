@@ -89,4 +89,18 @@ router.delete(
   }
 )
 
+router.get(
+  "/amounts",
+  async(_req: Request, res: Response, next: NextFunction) => {
+    try {
+      const uid = _req.headers.uid as string
+      const filters = _req.query
+      console.log(filters)
+      const result = await controller.getAmounts(filters, uid)
+      sendResponse(HttpResponse.OK, null, result, res)
+    } catch (err) {
+      next(err)
+    }
+  }
+)
 export default router

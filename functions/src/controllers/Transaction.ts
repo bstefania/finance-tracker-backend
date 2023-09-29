@@ -24,3 +24,8 @@ export const getTransactions = async (userId: string, queryParams: Record<string
   export const deleteTransaction = async (id: string, userId: string) => {
     return transactionOps.deleteTransaction(id, userId)
   }
+
+  export const getAmounts = async (filters: any, userId: string) => {
+    return transactionOps.getAmounts(filters, userId)
+  }
+  

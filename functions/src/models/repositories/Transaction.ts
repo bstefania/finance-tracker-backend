@@ -3,16 +3,15 @@ import { db } from "../../firebase"
 import { ApiError } from "../../middlewares/ErrorHandler";
 import { HttpResponse } from '../../types/General'
 import { Category, Transaction, TransactionInput, TransactionSource, TransactionType, User } from '../../types/Database'
-import { checkAccess, idsToRef, refsToData } from '../../utils/FirestoreData';
+import { checkAccess, idsToRef, querySnapshotToRef, refsToData } from '../../utils/FirestoreData';
 
 const collectionName = 'transactions'
 const usersCollectionName = 'users'
 const categoriesCollectionName = "categories"
+const categoryGroupsCollectionName = "categoryGroups"
 
-export const getTransactions = async (userId: string, queryParams: Record<string, string>) => {
-  const userRef = await idsToRef(userId, usersCollectionName);
-
-  let query = db.collection(collectionName).where('owner', '==', userRef);
+const constructQuery = async (collection: string, queryParams: any, userRef: any) => {
+  let query = db.collection(collection).where('owner', '==', userRef);
 
   if (queryParams.type) {
     query = query.where('type', '==', queryParams.type);
@@ -28,12 +27,58 @@ export const getTransactions = async (userId: string, queryParams: Record<string
     query = query.where('createdAt', '<=', endDate);
   }
 
+  
+  let groupDocs!: DocumentReference[];
+  let categoryDocs: DocumentReference[];
+
+  if (queryParams.categoryGroup) {
+    const groupsSnapshot = await db.collection(categoryGroupsCollectionName)
+      .where('owner', '==', userRef)
+      .where('name', '==', queryParams.categoryGroup).get();
+
+    groupDocs = querySnapshotToRef(groupsSnapshot)
+
+    if (!groupDocs.length) {
+      return
+    }
+  }
+
   if (queryParams.category) {
-    const categoryRef = await idsToRef(queryParams.category, categoriesCollectionName);
-    query = query.where('category', '==', categoryRef);
+    let categorySnapshot: any = db.collection(categoriesCollectionName).where('owner', '==', userRef)
+    if (queryParams.categoryGroup) {
+      categorySnapshot = categorySnapshot.where('categoryGroup', 'in', groupDocs)
+    }
+    categorySnapshot = await categorySnapshot.where('name', '==', queryParams.category).get();
+    categoryDocs = querySnapshotToRef(categorySnapshot)
+    if (!categoryDocs.length) {
+      return
+    }
+    query = query.where('category', 'in', categoryDocs)
+  } else {
+    if (queryParams.categoryGroup) {
+      const categorySnapshot = await db.collection(categoriesCollectionName)
+        .where('owner', '==', userRef)
+        .where('categoryGroup', 'in', groupDocs).get()
+      categoryDocs = querySnapshotToRef(categorySnapshot)
+      if (!categoryDocs.length) {
+        return
+      }
+      query = query.where('category', 'in', categoryDocs)
+    }
   }
 
   query = query.orderBy('createdAt', 'desc');
+
+  return query
+}
+
+export const getTransactions = async (userId: string, queryParams: Record<string, string>) => {
+  const userRef = await idsToRef(userId, usersCollectionName);
+
+  let query = await constructQuery(collectionName, queryParams, userRef)
+  if(!query) {
+    return []
+  }
 
   const querySnapshot = await query.get();
   const owner = await refsToData(userRef) as unknown as User;
@@ -97,21 +142,21 @@ const updateWealth = async (
   transactionSource: TransactionSource,
   amount: number) => {
 
-    switch(transactionType) {
-      case TransactionType.Expense:
-        user.wealth[transactionSource] -= amount;
-        break;
-      case TransactionType.Income:
-        user.wealth[transactionSource] += amount;
-        break;
-      case TransactionType.Savings:
-      case TransactionType.Investments:
-        user.wealth[transactionType] += amount
-        user.wealth[transactionSource] -= amount
-        break;
-      default:
-        break;
-    }
+  switch (transactionType) {
+    case TransactionType.Expense:
+      user.wealth[transactionSource] -= amount;
+      break;
+    case TransactionType.Income:
+      user.wealth[transactionSource] += amount;
+      break;
+    case TransactionType.Savings:
+    case TransactionType.Investments:
+      user.wealth[transactionType] += amount
+      user.wealth[transactionSource] -= amount
+      break;
+    default:
+      break;
+  }
   await userRef.update({ wealth: user.wealth });
 }
 
@@ -163,4 +208,43 @@ export const deleteTransaction = async (transactionId: string, userId: string) =
   return {
     id: transactionRef.id
   }
+}
+
+type AmountsFilters = {
+  createdAtStart: string,
+  createdAtEnd: string,
+  type: string,
+  category: string,
+  categoryGroup: string,
+}
+
+export const getAmounts = async (queryParams: AmountsFilters, userId: string) => {
+  const userRef = await idsToRef(userId, usersCollectionName);
+
+  let query = await constructQuery(collectionName, queryParams, userRef)
+  if (!query) {
+    return {}
+  }
+  const querySnapshot = await query.get();
+
+  const result: Record<string, any> = {}
+
+  await Promise.all(querySnapshot.docs.map(async doc => {
+    const data = doc.data();
+    const category: any = await refsToData(data.category);
+    const categoryGroup = category.categoryGroup
+
+    if (!result[categoryGroup.name]) {
+      result[categoryGroup.name] = {};
+    }
+    if (!result[categoryGroup.name][category.name]) {
+      result[categoryGroup.name][category.name] = {
+        color: category.color,
+        amount: 0
+      };
+    }
+    result[categoryGroup.name][category.name].amount += data.amount;
+  }));
+
+  return result;
 }

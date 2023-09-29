@@ -1,6 +1,6 @@
 
 import { db } from "../firebase"
-import { CollectionReference, DocumentData, DocumentReference, Query } from 'firebase-admin/firestore';
+import { CollectionReference, DocumentData, DocumentReference, Query, QuerySnapshot } from 'firebase-admin/firestore';
 import { Dictionary, DocumentDetails, HttpResponse } from '../types/General';
 import { ApiError } from '../middlewares/ErrorHandler';
 
@@ -63,4 +63,8 @@ export const checkIfDataAlreadyExists = async (
     || !(await mainQuery.where(groupField, 'array-contains', userRef).get()).empty) {
     throw new ApiError(HttpResponse.BAD_REQUEST, "Item with the same name already exists.");
   }
-} 
+}
+
+export const querySnapshotToRef = (querySnapshot: QuerySnapshot) => {
+  return querySnapshot.docs.map(doc => doc.ref)
+}
