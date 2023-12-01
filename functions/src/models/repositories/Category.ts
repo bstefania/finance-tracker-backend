@@ -13,10 +13,9 @@ export const getCategories = async (userId: string) => {
   const userRef = await idsToRef(userId, usersCollectionName)
   const querySnapshot = await db
     .collection(collectionName)
+    // or in sharedWith list
     .where('owner', '==', userRef)
     .get();
-
-  const owner = await refsToData(userRef) as unknown as User
 
   return Promise.all(querySnapshot.docs.map(async (ref) => {
     const data = ref.data();
@@ -24,9 +23,10 @@ export const getCategories = async (userId: string) => {
       id: ref.id,
       name: data.name,
       color: data.color,
-      owner,
-      categoryGroup: await refsToData(data.categoryGroup) as unknown as CategoryGroup,
-      sharedWith: await refsToData(data.sharedWith) as unknown as User[],
+      icon: data.icon,
+      owner: await refsToData(userRef, collectionName) as unknown as User,
+      categoryGroup: await refsToData(data.categoryGroup, categoryGroupCollectionName) as unknown as CategoryGroup,
+      sharedWith: await refsToData(data.sharedWith, usersCollectionName) as unknown as User[],
     };
   }))
 }
@@ -36,8 +36,8 @@ export const getCategory = async (
   userId: string
 ) => {
   const categoryRef = await idsToRef(categoryId, collectionName) as DocumentReference<FirebaseFirestore.DocumentData>
-  const category = await refsToData(categoryRef) as unknown as Category
-  checkAccess(category, userId)
+  const category = await refsToData(categoryRef, collectionName) as unknown as Category
+  checkAccess(category, userId, collectionName)
   return category
 }
 
@@ -47,17 +47,18 @@ export const createCategory = async (category: CategoryInput, userId: string) =>
   const categoryGroupRef = await idsToRef(category.categoryGroupId, categoryGroupCollectionName) as DocumentReference
   
   // make sure the user has access to the category group
-  checkAccess((await categoryGroupRef.get()).data(), userId)
+  checkAccess((await categoryGroupRef.get()).data(), userId, categoryGroupCollectionName)
 
   const details: DocumentDetails = {
     name: category.name,
     categoryGroup: categoryGroupRef
   }
-  await checkIfDataAlreadyExists(details, userRef, collection)
+  await checkIfDataAlreadyExists(details, userRef, collection, collectionName)
 
   const categoryRef = await db.collection(collectionName).add({
     name: category.name,
     color: category.color,
+    icon: category.icon,
     owner: userRef,
     categoryGroup: categoryGroupRef,
     sharedWith: await idsToRef(category.sharedWith, usersCollectionName),
@@ -66,7 +67,7 @@ export const createCategory = async (category: CategoryInput, userId: string) =>
     throw new ApiError(HttpResponse.INTERNAL_SERVER_ERROR, "Category could not be created.")
   }
 
-  return refsToData(categoryRef);
+  return refsToData(categoryRef, collectionName);
 }
 
 export const updateCategory = async (
@@ -75,9 +76,25 @@ export const updateCategory = async (
   userId: string
 ) => {
   const categoryRef = await idsToRef(categoryId, collectionName) as DocumentReference
-  const category = await refsToData(categoryRef) as unknown as Category;
+  const category = await refsToData(categoryRef, collectionName) as unknown as Category;
 
-  checkAccess(category, userId)
+  checkAccess(category, userId, collectionName)
+
+  const details: DocumentDetails = {}
+
+  if (categoryUpdates.name) {
+    details.name = categoryUpdates.name
+  }
+
+  if (categoryUpdates.categoryGroupId) {
+    details.categoryGroup =  await idsToRef(categoryUpdates.categoryGroupId, categoryGroupCollectionName) as DocumentReference
+  }
+
+  if (details) {
+    const collection = db.collection(collectionName)
+    const userRef = await idsToRef(userId, usersCollectionName) as DocumentReference
+    await checkIfDataAlreadyExists(details, userRef, collection, collectionName)
+  }
 
   const newData: any = {};
   for (let [key, value] of Object.entries(categoryUpdates)) {
@@ -87,7 +104,7 @@ export const updateCategory = async (
   }
   if (categoryUpdates.categoryGroupId) {
     newData.categoryGroup = await idsToRef(categoryUpdates.categoryGroupId, categoryGroupCollectionName)
-    checkAccess(newData.categoryGroup, userId)
+    checkAccess(newData.categoryGroup, userId, collectionName)
   }
 
   if (categoryUpdates.sharedWith) {
@@ -95,7 +112,7 @@ export const updateCategory = async (
   }
 
   await categoryRef.update(newData);
-  const updatedCategory = await refsToData(categoryRef);
+  const updatedCategory = await refsToData(categoryRef, collectionName);
 
   if (!updatedCategory) {
     throw new ApiError(HttpResponse.INTERNAL_SERVER_ERROR, "Category could not be updated.")
@@ -106,9 +123,9 @@ export const updateCategory = async (
 
 export const deleteCategory = async (categoryId: string, userId: string) => {
   const categoryRef = await idsToRef(categoryId, collectionName) as DocumentReference
-  const category = await refsToData(categoryRef) as unknown as Category
-  checkAccess(category, userId)
-  await categoryRef.delete();
+  const category = await refsToData(categoryRef, collectionName) as unknown as Category
+  checkAccess(category, userId, collectionName)
+  await categoryRef.delete()
   return {
     id: categoryRef.id
   }

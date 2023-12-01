@@ -13,9 +13,8 @@ export const getCategoryGroups = async (userId: string) => {
   const querySnapshot = await db
     .collection(collectionName)
     .where('owner', '==', userRef)
+    // or where user is in sharedWith list
     .get();
-
-  const owner = await refsToData(userRef) as unknown as User
 
   return Promise.all(querySnapshot.docs.map(async (ref) => {
     const data = ref.data();
@@ -23,8 +22,9 @@ export const getCategoryGroups = async (userId: string) => {
       id: ref.id,
       name: data.name,
       color: data.color,
-      owner,
-      sharedWith: await refsToData(data.sharedWith) as unknown as User[],
+      icon: data.icon,
+      owner:  await refsToData(userRef, usersCollectionName) as unknown as User,
+      sharedWith: await refsToData(data.sharedWith, usersCollectionName) as unknown as User[],
     };
   }))
 }
@@ -34,8 +34,8 @@ export const getCategoryGroup = async (
   userId: string
 ) => {
   const categoryGroupRef = await idsToRef(categoryGroupId, collectionName) as DocumentReference<FirebaseFirestore.DocumentData>
-  const categoryGroup = await refsToData(categoryGroupRef) as unknown as CategoryGroup
-  checkAccess(categoryGroup, userId)
+  const categoryGroup = await refsToData(categoryGroupRef, collectionName) as unknown as CategoryGroup
+  checkAccess(categoryGroup, userId, collectionName)
   return categoryGroup
 }
 
@@ -46,11 +46,12 @@ export const createCategoryGroup = async (categoryGroup: CategoryGroupInput, use
   const details: DocumentDetails = {
     name: categoryGroup.name
   }
-  await checkIfDataAlreadyExists(details, userRef, collection)
+  await checkIfDataAlreadyExists(details, userRef, collection, collectionName)
 
   const categoryGroupRef = await collection.add({
     name: categoryGroup.name,
     color: categoryGroup.color,
+    icon: categoryGroup.icon,
     owner: userRef,
     sharedWith: await idsToRef(categoryGroup.sharedWith, usersCollectionName),
   })
@@ -58,7 +59,7 @@ export const createCategoryGroup = async (categoryGroup: CategoryGroupInput, use
     throw new ApiError(HttpResponse.INTERNAL_SERVER_ERROR, "Category group could not be created.")
   }
 
-  return refsToData(categoryGroupRef);
+  return refsToData(categoryGroupRef, collectionName);
 }
 
 export const updateCategoryGroup = async (
@@ -67,9 +68,18 @@ export const updateCategoryGroup = async (
   userId: string
 ) => {
   const categoryGroupRef = await idsToRef(categoryGroupId, collectionName) as DocumentReference
-  const categoryGroup = await refsToData(categoryGroupRef) as unknown as CategoryGroup;
+  const categoryGroup = await refsToData(categoryGroupRef, collectionName) as unknown as CategoryGroup;
 
-  checkAccess(categoryGroup, userId)
+  checkAccess(categoryGroup, userId, collectionName)
+
+  if (categoryGroupUpdates.name) {
+    const details: DocumentDetails = {
+      name: categoryGroupUpdates.name
+    }
+    const userRef = await idsToRef(userId, usersCollectionName) as DocumentReference
+    const collection = db.collection(collectionName)
+    await checkIfDataAlreadyExists(details, userRef, collection, collectionName)
+  }
 
   const newData: any = {};
   for (let [key, value] of Object.entries(categoryGroupUpdates)) {
@@ -82,7 +92,7 @@ export const updateCategoryGroup = async (
   }
 
   await categoryGroupRef.update(newData);
-  const updatedCategoryGroup = await refsToData(categoryGroupRef);
+  const updatedCategoryGroup = await refsToData(categoryGroupRef, collectionName)
 
   if (!updatedCategoryGroup) {
     throw new ApiError(HttpResponse.INTERNAL_SERVER_ERROR, "Category group could not be updated.")
@@ -93,9 +103,9 @@ export const updateCategoryGroup = async (
 
 export const deleteCategoryGroup = async (categoryGroupId: string, userId: string) => {
   const categoryGroupRef = await idsToRef(categoryGroupId, collectionName) as DocumentReference
-  const categoryGroup = await refsToData(categoryGroupRef) as unknown as CategoryGroup
-  checkAccess(categoryGroup, userId)
-  await categoryGroupRef.delete();
+  const categoryGroup = await refsToData(categoryGroupRef, collectionName) as unknown as CategoryGroup
+  checkAccess(categoryGroup, userId, collectionName)
+  await categoryGroupRef.delete()
   return {
     id: categoryGroupRef.id
   }

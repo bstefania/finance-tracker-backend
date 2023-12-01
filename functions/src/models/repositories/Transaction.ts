@@ -81,7 +81,6 @@ export const getTransactions = async (userId: string, queryParams: Record<string
   }
 
   const querySnapshot = await query.get();
-  const owner = await refsToData(userRef) as unknown as User;
 
   return Promise.all(querySnapshot.docs.map(async (ref) => {
     const data = ref.data();
@@ -91,9 +90,9 @@ export const getTransactions = async (userId: string, queryParams: Record<string
       amount: data.amount,
       createdAt: data.createdAt.toDate(),
       note: data.note,
-      category: await refsToData(data.category) as unknown as Category,
-      owner,
-      sharedWith: await refsToData(data.sharedWith) as unknown as User[],
+      category: await refsToData(data.category,categoriesCollectionName) as unknown as Category,
+      owner: await refsToData(userRef, usersCollectionName) as unknown as User,
+      sharedWith: await refsToData(data.sharedWith, usersCollectionName) as unknown as User[],
     };
   }))
 }
@@ -102,20 +101,21 @@ export const getTransaction = async (
   transactionId: string,
   userId: string
 ) => {
+  // use one function
   const transactionRef = await idsToRef(transactionId, collectionName) as DocumentReference<FirebaseFirestore.DocumentData>
-  const transaction = await refsToData(transactionRef) as unknown as Transaction
-  checkAccess(transaction, userId)
+  const transaction = await refsToData(transactionRef, collectionName) as unknown as Transaction
+  checkAccess(transaction, userId, collectionName)
   return transaction
 }
 
-// TODO: rollback
+// TODO: rollback / atomic transaction
 export const createTransaction = async (transaction: TransactionInput, userId: string) => {
   const userRef = await idsToRef(userId, usersCollectionName) as DocumentReference
-  const user = await refsToData(userRef) as unknown as User;
+  const user = await refsToData(userRef, usersCollectionName) as unknown as User;
   const categoryRef = await idsToRef(transaction.categoryId, categoriesCollectionName) as DocumentReference
 
   // make sure the user has access to the category
-  checkAccess((await categoryRef.get()).data(), userId)
+  checkAccess((await categoryRef.get()).data(), userId, categoriesCollectionName)
 
   const transactionRef = await db.collection(collectionName).add({
     type: transaction.type,
@@ -132,7 +132,7 @@ export const createTransaction = async (transaction: TransactionInput, userId: s
   }
 
   await updateWealth(user, userRef, transaction.type, transaction.source, transaction.amount)
-  return refsToData(transactionRef);
+  return refsToData(transactionRef, collectionName);
 }
 
 const updateWealth = async (
@@ -166,9 +166,9 @@ export const updateTransaction = async (
   userId: string
 ) => {
   const transactionRef = await idsToRef(transactionId, collectionName) as DocumentReference
-  const transaction = await refsToData(transactionRef) as unknown as Transaction;
+  const transaction = await refsToData(transactionRef, collectionName) as unknown as Transaction;
 
-  checkAccess(transaction, userId)
+  checkAccess(transaction, userId, collectionName)
 
   const newData: any = {};
   for (let [key, value] of Object.entries(transactionUpdates)) {
@@ -183,7 +183,7 @@ export const updateTransaction = async (
 
   if (transactionUpdates.categoryId) {
     newData.category = await idsToRef(transactionUpdates.categoryId, categoriesCollectionName)
-    checkAccess(newData.category, userId)
+    checkAccess(newData.category, userId, categoriesCollectionName)
   }
 
   if (transactionUpdates.sharedWith) {
@@ -191,7 +191,7 @@ export const updateTransaction = async (
   }
 
   await transactionRef.update(newData);
-  const updatedTransaction = await refsToData(transactionRef);
+  const updatedTransaction = await refsToData(transactionRef, collectionName);
 
   if (!updatedTransaction) {
     throw new ApiError(HttpResponse.INTERNAL_SERVER_ERROR, "Transaction could not be updated.")
@@ -202,9 +202,9 @@ export const updateTransaction = async (
 
 export const deleteTransaction = async (transactionId: string, userId: string) => {
   const transactionRef = await idsToRef(transactionId, collectionName) as DocumentReference
-  const transaction = await refsToData(transactionRef) as unknown as Transaction
-  checkAccess(transaction, userId)
-  await transactionRef.delete();
+  const transaction = await refsToData(transactionRef, collectionName) as unknown as Transaction
+  checkAccess(transaction, userId, collectionName)
+  await transactionRef.delete()
   return {
     id: transactionRef.id
   }
@@ -231,7 +231,7 @@ export const getAmounts = async (queryParams: AmountsFilters, userId: string) =>
 
   await Promise.all(querySnapshot.docs.map(async doc => {
     const data = doc.data();
-    const category: any = await refsToData(data.category);
+    const category: any = await refsToData(data.category, categoriesCollectionName);
     const categoryGroup = category.categoryGroup
 
     if (!result[categoryGroup.name]) {

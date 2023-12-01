@@ -1,13 +1,17 @@
-import { Response } from "express"
-import { HttpResponse } from "../types/General"
+import { Response } from "express";
+import { HttpResponse } from "../types/General";
 
 export const toTitleCase = (text: string) => {
-  const arr = text.split("_")
+  const arr = text.split("_");
   const result = arr.map(
     (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-  )
-  return result.join(" ")
-}
+  );
+  return result.join(" ");
+};
+
+export const getResponseCollectionName = (text: string) => {
+  return toTitleCase(text).slice(0, -1);
+};
 
 export const sendResponse = (
   status: HttpResponse,
@@ -22,6 +26,6 @@ export const sendResponse = (
     ),
     message: message,
     data: data,
-  }
-  res.status(response.status).json(response)
-}
+  };
+  res.status(response.status).json(response);
+};
