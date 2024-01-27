@@ -22,7 +22,7 @@ export const refsToData = async (input: DocumentReference | DocumentReference[],
     };
 
     for (const [key, value] of Object.entries(initialData)) {
-      if (value instanceof DocumentReference || value instanceof Array<DocumentReference>) {
+      if (value instanceof DocumentReference || value instanceof Array) {
         initialData[key] = await refsToData(value, collectionName);
       }
     }
@@ -52,7 +52,7 @@ export const idsToData = async (input: string | string[], collectionName: string
 }
 
 export const checkAccess = async (data: DocumentData | undefined, userId: string, collectionName: string) => {
-  if (!data || (data.owner.id !== userId && !data.sharedWith.contains(userId))) {
+  if (!data || (data && data.owner.id !== userId && !data.sharedWith?.contains(userId))) {
     throw new ApiError(HttpResponse.NOT_FOUND, `${getResponseCollectionName(collectionName)} not found.`);
   }
 }
