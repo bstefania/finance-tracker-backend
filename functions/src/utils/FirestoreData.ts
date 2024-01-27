@@ -8,25 +8,29 @@ import { getResponseCollectionName } from "./ResponseGenerator";
 const ownerField = "owner"
 const groupField = "sharedWith"
 
+export const refToData = async (ref: DocumentReference, collectionName: string) {
+  const doc = await ref.get()
+  if (!doc.exists) {
+    throw new ApiError(HttpResponse.NOT_FOUND, `${getResponseCollectionName(collectionName)} not found!`)
+  }
+
+  const initialData: any = {
+    id: ref.id,
+    ...doc.data(),
+  };
+
+  for (const [key, value] of Object.entries(initialData)) {
+    if (value instanceof DocumentReference || (Array.isArray(value) && value.every(item => item instanceof DocumentReference))) {
+      initialData[key] = await refsToData(value, collectionName);
+    }
+  }
+  return initialData;
+}
+
 export const refsToData = async (input: DocumentReference | DocumentReference[], collectionName: string)
   : Promise<Dictionary | Dictionary[] | undefined> => {
   if (input instanceof DocumentReference) {
-    const doc = await input.get()
-    if (!doc.exists) {
-      throw new ApiError(HttpResponse.NOT_FOUND, `${getResponseCollectionName(collectionName)} not found!`)
-    }
-
-    const initialData: any = {
-      id: input.id,
-      ...doc.data(),
-    };
-
-    for (const [key, value] of Object.entries(initialData)) {
-      if (value instanceof DocumentReference || value instanceof Array) {
-        initialData[key] = await refsToData(value, collectionName);
-      }
-    }
-    return initialData;
+    return refToData(input, collectionName)
   }
 
   return Promise.all(input.map(async (ref: DocumentReference) => {
