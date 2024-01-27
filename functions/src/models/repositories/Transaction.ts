@@ -166,6 +166,8 @@ export const updateTransaction = async (
     }
   }
 
+  newData.amount = +newData.amount;
+ 
   if (transactionUpdates.createdAt) {
     newData.createdAt = new Date(newData.createdAt);
   }
@@ -186,7 +188,8 @@ export const updateTransaction = async (
   if (!updatedTransaction) {
     throw new ApiError(HttpResponse.INTERNAL_SERVER_ERROR, "Transaction could not be updated.");
   }
-  const userRef = (await idsToRef(userId, usersCollectionName)) as DocumentReference;
+  let userRef = (await idsToRef(userId, usersCollectionName)) as DocumentReference;
+
   await updateWealth(
     oldTransaction.owner,
     userRef,
@@ -195,8 +198,11 @@ export const updateTransaction = async (
     oldTransaction.amount,
     true
   );
+  
+  userRef = (await idsToRef(userId, usersCollectionName)) as DocumentReference;
+  const user = (await refsToData(userRef, usersCollectionName)) as unknown as User;
   await updateWealth(
-    updatedTransaction.owner,
+    user,
     userRef,
     updatedTransaction.type,
     updatedTransaction.source,
